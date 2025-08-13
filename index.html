@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Red-Blue Sphere Distance Test</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f0f8ff;
+    padding: 20px;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  h2 {
+    margin-bottom: 5px;
+  }
+  .info {
+    margin-bottom: 20px;
+    font-size: 16px;
+  }
+  .container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 80px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 600px;
+  }
+  .ball {
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    transition: box-shadow 0.3s ease, width 0.3s ease, height 0.3s ease;
+  }
+  .ball::before {
+    content: "";
+    position: absolute;
+    top: 15%;
+    left: 25%;
+    width: 40%;
+    height: 40%;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.7), transparent 80%);
+    filter: blur(6px);
+    z-index: 2;
+  }
+  .red-ball {
+    background: radial-gradient(circle at 30% 30%, #ff6b5c, #b03126);
+  }
+  .blue-ball {
+    background: radial-gradient(circle at 30% 30%, #7db8f7, #1a4f9c);
+  }
+  #distanceRange {
+    width: 400px;
+    margin-bottom: 20px;
+  }
+  button, #nextBtn {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    background-color: #27ae60;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin: 5px;
+  }
+  button:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+  }
+  #nextBtn:disabled {
+    background-color: #2980b9;
+    cursor: not-allowed;
+  }
+  .buttons {
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Red-Blue Sphere Distance Test</h2>
+<div class="info" id="instruction">Adjust the slider to make the adjustable ball appear at the same distance as the standard ball, then click Submit.</div>
+<div class="info" id="questionNum">Question 1 / 3</div>
+
+<div class="container">
+  <div class="ball red-ball" id="leftBall"></div>
+  <div class="ball blue-ball" id="rightBall"></div>
+</div>
+
+<input type="range" id="distanceRange" min="0" max="100" value="50" />
+
+<div class="buttons">
+  <button id="submitBtn">Submit</button>
+  <button id="nextBtn" disabled>Next Question</button>
+</div>
+
+<script>
+  const leftBall = document.getElementById('leftBall');
+  const rightBall = document.getElementById('rightBall');
+  const range = document.getElementById('distanceRange');
+  const submitBtn = document.getElementById('submitBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const instruction = document.getElementById('instruction');
+  const questionNum = document.getElementById('questionNum');
+
+  const questions = [
+    {standardBall: 'right', standardSize: 80, adjustableBall: 'left'},
+    {standardBall: 'right', standardSize: 100, adjustableBall: 'left'},
+    {standardBall: 'right', standardSize: 120, adjustableBall: 'left'}
+  ];
+
+  let currentIndex = 0;
+  let submitted = false;
+  let results = [];
+
+  function setBallsForQuestion(q) {
+    if (q.standardBall === 'left') {
+      leftBall.style.width = q.standardSize + 'px';
+      leftBall.style.height = q.standardSize + 'px';
+      leftBall.style.boxShadow = `0 15px 20px rgba(183, 49, 38, 0.6)`;
+
+      rightBall.style.boxShadow = '';
+      rightBall.style.width = '';
+      rightBall.style.height = '';
+    } else {
+      rightBall.style.width = q.standardSize + 'px';
+      rightBall.style.height = q.standardSize + 'px';
+      rightBall.style.boxShadow = `0 15px 20px rgba(0, 0, 139, 0.6)`;
+
+      leftBall.style.boxShadow = '';
+      leftBall.style.width = '';
+      leftBall.style.height = '';
+    }
+  }
+
+  function updateAdjustableBall(q, value) {
+    const minSize = 70;
+    const maxSize = 150;
+    const size = minSize + (value / 100) * (maxSize - minSize);
+
+    const shadowOffsetY = 5 + (value / 100) * 20;
+    const shadowBlur = 10 + (value / 100) * 20;
+    const shadowAlpha = 0.2 + (value / 100) * 0.5;
+
+    if (q.adjustableBall === 'left') {
+      leftBall.style.width = size + 'px';
+      leftBall.style.height = size + 'px';
+      leftBall.style.boxShadow = `0 ${shadowOffsetY}px ${shadowBlur}px rgba(183, 49, 38, ${shadowAlpha})`;
+    } else {
+      rightBall.style.width = size + 'px';
+      rightBall.style.height = size + 'px';
+      rightBall.style.boxShadow = `0 ${shadowOffsetY}px ${shadowBlur}px rgba(0, 0, 139, ${shadowAlpha})`;
+    }
+  }
+
+  function updateUI() {
+    const q = questions[currentIndex];
+    questionNum.textContent = `Question ${currentIndex + 1} / ${questions.length}`;
+    instruction.textContent = "Adjust the slider to make the adjustable ball appear at the same distance as the standard ball, then click Submit.";
+
+    setBallsForQuestion(q);
+    updateAdjustableBall(q, range.value);
+
+    range.disabled = false;
+    submitBtn.disabled = false;
+    nextBtn.disabled = true;
+
+    // 如果是最后一题，提前把按钮文字改成 Exit
+    if (currentIndex === questions.length - 1) {
+      nextBtn.textContent = "Exit";
+    } else {
+      nextBtn.textContent = "Next Question";
+    }
+  }
+
+  range.addEventListener('input', () => {
+    if (submitted) return;
+    updateAdjustableBall(questions[currentIndex], range.value);
+  });
+
+  function submitAllToGoogleForm(allValues) {
+    const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdTkmauZD05HlAK2WbVNbKcn631xvQxryynCTqLK7FJXPZOEQ/formResponse";
+    const joinedValues = allValues.join(",");
+
+    const formData = new URLSearchParams();
+    formData.append("entry.2093553074", joinedValues);
+
+    fetch(formUrl, {
+      method: "POST",
+      mode: "no-cors",
+      body: formData
+    }).then(() => {
+      console.log("All slider values submitted:", joinedValues);
+    }).catch(err => {
+      console.error("Submit error:", err);
+    });
+  }
+
+  submitBtn.addEventListener('click', () => {
+    if (submitted) return;
+    submitted = true;
+
+    results[currentIndex] = range.value;
+
+    submitBtn.disabled = true;
+    range.disabled = true;
+
+    if (currentIndex === questions.length - 1) {
+      submitAllToGoogleForm(results);
+      alert("All questions submitted! Thank you!");
+      nextBtn.disabled = false;
+    } else {
+      nextBtn.disabled = false;
+      alert(`Question ${currentIndex + 1} submitted! Please proceed to next question.`);
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (!submitted) return;
+
+    if (currentIndex === questions.length - 1) {
+      window.close(); // 尝试关闭页面
+    } else {
+      currentIndex++;
+      submitted = false;
+      range.value = 50;
+      updateUI();
+    }
+  });
+
+  // 初始化第一题
+  updateUI();
+</script>
+
+</body>
+</html>
